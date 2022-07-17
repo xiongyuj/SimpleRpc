@@ -128,6 +128,13 @@ public class RpcServerHandler extends SimpleChannelInboundHandler<RpcRequest> {
         ctx.close();
     }
 
+    /**
+     * 心跳检测，channel超过30s空闲，关闭该连接
+     * @param ctx
+     * @param evt
+     * @throws Exception
+     */
+
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {

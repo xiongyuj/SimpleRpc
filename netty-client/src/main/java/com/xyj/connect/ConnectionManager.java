@@ -3,12 +3,15 @@ package com.xyj.connect;
 
 import com.xyj.handler.RpcClientHandler;
 import com.xyj.handler.RpcClientInitializer;
+import com.xyj.vo.RpcConnectionInfo;
+import com.xyj.vo.RpcServiceInfo;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.recipes.cache.PathChildrenCacheEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,23 +28,29 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * 管理client的所有RPC连接
  */
+@Slf4j
 public class ConnectionManager {
-    private static final Logger logger = LoggerFactory.getLogger(ConnectionManager.class);
 
     private EventLoopGroup eventLoopGroup = new NioEventLoopGroup(4);
+
     private static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(4, 8,
             600L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1000));
 
     private Map<RpcConnectionInfo, RpcClientHandler> connectedServerNodes = new ConcurrentHashMap<>();
+
     private CopyOnWriteArraySet<RpcConnectionInfo> RpcConnectionInfoSet = new CopyOnWriteArraySet<>();
+
     private ReentrantLock lock = new ReentrantLock();
+
     private Condition connected = lock.newCondition();
+
     private long waitTimeout = 5000;
+
     private RpcLoadBalance loadBalance = new RpcLoadBalanceRoundRobin();
+
     private volatile boolean isRunning = true;
 
-    private ConnectionManager() {
-    }
+    private ConnectionManager() {}
 
     private static class SingletonHolder {
         private static final ConnectionManager instance = new ConnectionManager();
@@ -50,6 +59,8 @@ public class ConnectionManager {
     public static ConnectionManager getInstance() {
         return SingletonHolder.instance;
     }
+
+
 
     /**
      * 更新缓存节点
@@ -77,13 +88,13 @@ public class ConnectionManager {
             // Close and remove invalid server nodes
             for (RpcConnectionInfo RpcConnectionInfo : RpcConnectionInfoSet) {
                 if (!serviceSet.contains(RpcConnectionInfo)) {
-                    logger.info("Remove invalid service: " + RpcConnectionInfo.toJson());
+                    log.info("Remove invalid service: " + RpcConnectionInfo.toJson());
                     removeAndCloseHandler(RpcConnectionInfo);
                 }
             }
         } else {
             // No available service
-            logger.error("No available service!");
+            log.error("No available service!");
             for (RpcConnectionInfo RpcConnectionInfo : RpcConnectionInfoSet) {
                 removeAndCloseHandler(RpcConnectionInfo);
             }
@@ -119,13 +130,13 @@ public class ConnectionManager {
 
     private void connectServerNode(RpcConnectionInfo RpcConnectionInfo) {
         if (RpcConnectionInfo.getServiceInfoList() == null || RpcConnectionInfo.getServiceInfoList().isEmpty()) {
-            logger.info("No service on node, host: {}, port: {}", RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
+            log.info("No service on node, host: {}, port: {}", RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
             return;
         }
         RpcConnectionInfoSet.add(RpcConnectionInfo);
-        logger.info("New service node, host: {}, port: {}", RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
+        log.info("New service node, host: {}, port: {}", RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
         for (RpcServiceInfo serviceProtocol : RpcConnectionInfo.getServiceInfoList()) {
-            logger.info("New service info, name: {}, version: {}", serviceProtocol.getServiceName(), serviceProtocol.getVersion());
+            log.info("New service info, name: {}, version: {}", serviceProtocol.getServiceName(), serviceProtocol.getVersion());
         }
         final InetSocketAddress remotePeer = new InetSocketAddress(RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
         //将连接任务提交给线程池
@@ -142,13 +153,13 @@ public class ConnectionManager {
                     @Override
                     public void operationComplete(final ChannelFuture channelFuture) throws Exception {
                         if (channelFuture.isSuccess()) {
-                            logger.info("Successfully connect to remote server, remote peer = " + remotePeer);
+                            log.info("Successfully connect to remote server, remote peer = " + remotePeer);
                             RpcClientHandler handler = channelFuture.channel().pipeline().get(RpcClientHandler.class);
                             connectedServerNodes.put(RpcConnectionInfo, handler);
                             handler.setRpcConnectionInfo(RpcConnectionInfo);
                             signalAvailableHandler();
                         } else {
-                            logger.error("Can not connect to remote server, remote peer = " + remotePeer);
+                            log.error("Can not connect to remote server, remote peer = " + remotePeer);
                         }
                     }
                 });
@@ -178,7 +189,7 @@ public class ConnectionManager {
     private boolean waitingForHandler() throws InterruptedException {
         lock.lock();
         try {
-            logger.warn("Waiting for available service");
+            log.warn("Waiting for available service");
             return connected.await(this.waitTimeout, TimeUnit.MILLISECONDS);
         } finally {
             lock.unlock();
@@ -198,7 +209,7 @@ public class ConnectionManager {
                 waitingForHandler();
                 size = connectedServerNodes.values().size();
             } catch (InterruptedException e) {
-                logger.error("Waiting for available service is interrupted!", e);
+                log.error("Waiting for available service is interrupted!", e);
             }
         }
         RpcConnectionInfo RpcConnectionInfo = loadBalance.route(serviceKey, connectedServerNodes);
@@ -232,7 +243,7 @@ public class ConnectionManager {
     public void removeHandler(RpcConnectionInfo RpcConnectionInfo) {
         RpcConnectionInfoSet.remove(RpcConnectionInfo);
         connectedServerNodes.remove(RpcConnectionInfo);
-        logger.info("Remove one connection, host: {}, port: {}", RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
+        log.info("Remove one connection, host: {}, port: {}", RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
     }
 
     /**

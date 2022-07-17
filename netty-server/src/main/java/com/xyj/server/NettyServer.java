@@ -1,7 +1,6 @@
 package com.xyj.server;
 
 
-import com.xyj.handler.RpcServerInitializer;
 import com.xyj.registry.ServiceRegistry;
 import com.xyj.util.ServiceUtil;
 import com.xyj.util.ThreadPoolUtil;

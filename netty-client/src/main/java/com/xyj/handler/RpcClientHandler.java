@@ -1,16 +1,16 @@
 package com.xyj.handler;
 
 import com.xyj.connect.ConnectionManager;
-import com.xyj.connect.RpcConnectionInfo;
+import com.xyj.vo.RpcConnectionInfo;
+import com.xyj.vo.RpcFuture;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.handler.timeout.IdleStateEvent;
 import com.xyj.message.Beat;
 import com.xyj.message.RpcRequest;
 import com.xyj.message.RpcResponse;
-import io.netty.handler.timeout.IdleStateHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+
 import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,12 +18,16 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * RPC请求的Handler，一个Channel对应着一个RPCHandler实例，因为该Handler不是Shareable的
  */
+@Slf4j
 public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
-    private static final Logger logger = LoggerFactory.getLogger(RpcClientHandler.class);
 
-    private ConcurrentHashMap<String, RpcFuture> pendingRPC = new ConcurrentHashMap<>();//记录所有待处理的rpc请求
+    private ConcurrentHashMap<String, RpcFuture> pendingRPC =
+            new ConcurrentHashMap<>();//记录所有待处理的rpc请求
+
     private volatile Channel channel;
+
     private SocketAddress remotePeer;
+
     private RpcConnectionInfo rpcConnectionInfo;
 
     /**
@@ -68,14 +72,14 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
     @Override
     protected void messageReceived(ChannelHandlerContext channelHandlerContext, RpcResponse rpcResponse) throws Exception {
         String requestId = rpcResponse.getRequestId();
-        logger.debug("Receive response: " + requestId);
+        log.debug("Receive response: " + requestId);
         RpcFuture rpcFuture = pendingRPC.get(requestId);
         //该RPC请求结束，从map中移除该连接，并发起该RPCFuture所有回调
         if (rpcFuture != null) {
             pendingRPC.remove(requestId);
             rpcFuture.done(rpcResponse);
         } else {
-            logger.warn("Can not get pending response for request id: " + requestId);
+            log.warn("Can not get pending response for request id: " + requestId);
         }
     }
 
@@ -87,7 +91,7 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        logger.error("Client caught exception: " + cause.getMessage());
+        log.error("Client caught exception: " + cause.getMessage());
         ctx.close();
     }
 
@@ -103,7 +107,7 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {
             sendRequest(Beat.BEAT_PING);
-            logger.debug("Client send beat-ping to " + remotePeer);
+            log.debug("Client send beat-ping to " + remotePeer);
         } else {
             super.userEventTriggered(ctx, evt);
         }
@@ -128,10 +132,10 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
         try {
             ChannelFuture channelFuture = channel.writeAndFlush(request).sync();
             if (!channelFuture.isSuccess()) {
-                logger.error("Send request {} error", request.getRequestId());
+                log.error("Send request {} error", request.getRequestId());
             }
         } catch (InterruptedException e) {
-            logger.error("Send request exception: " + e.getMessage());
+            log.error("Send request exception: " + e.getMessage());
         }
 
         return rpcFuture;
@@ -141,9 +145,6 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
     public void setRpcConnectionInfo(RpcConnectionInfo RpcConnectionInfo) {
         this.rpcConnectionInfo = RpcConnectionInfo;
     }
-
-
-
 
 
 }

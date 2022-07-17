@@ -2,7 +2,7 @@ package com.xyj.proxy;
 
 import com.xyj.connect.ConnectionManager;
 import com.xyj.handler.RpcClientHandler;
-import com.xyj.handler.RpcFuture;
+import com.xyj.vo.RpcFuture;
 import com.xyj.message.RpcRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

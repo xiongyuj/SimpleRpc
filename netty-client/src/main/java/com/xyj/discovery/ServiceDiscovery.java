@@ -1,6 +1,6 @@
 package com.xyj.discovery;
 
-import com.xyj.connect.RpcConnectionInfo;
+import com.xyj.vo.RpcConnectionInfo;
 import com.xyj.config.Constant;
 import com.xyj.connect.ConnectionManager;
 import org.apache.curator.framework.CuratorFramework;

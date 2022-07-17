@@ -1,4 +1,4 @@
-package com.xyj.handler;
+package com.xyj.connect;
 
 public interface AsyncRPCCallback {
 

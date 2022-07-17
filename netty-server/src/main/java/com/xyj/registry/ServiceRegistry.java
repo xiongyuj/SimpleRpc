@@ -2,8 +2,8 @@ package com.xyj.registry;
 
 
 import com.xyj.config.Constant;
-import com.xyj.connect.RpcConnectionInfo;
-import com.xyj.connect.RpcServiceInfo;
+import com.xyj.vo.RpcConnectionInfo;
+import com.xyj.vo.RpcServiceInfo;
 import com.xyj.util.ServiceUtil;
 import com.xyj.zookeeper.CuratorClient;
 import org.apache.curator.framework.CuratorFramework;

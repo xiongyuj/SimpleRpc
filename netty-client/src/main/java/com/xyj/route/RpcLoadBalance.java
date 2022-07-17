@@ -1,8 +1,8 @@
 package com.xyj.route;
 
 
-import com.xyj.connect.RpcConnectionInfo;
-import com.xyj.connect.RpcServiceInfo;
+import com.xyj.vo.RpcConnectionInfo;
+import com.xyj.vo.RpcServiceInfo;
 import com.xyj.handler.RpcClientHandler;
 import org.apache.commons.collections4.map.HashedMap;
 import com.xyj.util.ServiceUtil;

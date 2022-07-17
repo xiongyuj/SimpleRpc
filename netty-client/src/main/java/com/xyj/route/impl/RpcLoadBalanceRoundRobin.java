@@ -1,6 +1,6 @@
 package com.xyj.route.impl;
 
-import com.xyj.connect.RpcConnectionInfo;
+import com.xyj.vo.RpcConnectionInfo;
 import com.xyj.handler.RpcClientHandler;
 
 import com.xyj.route.RpcLoadBalance;

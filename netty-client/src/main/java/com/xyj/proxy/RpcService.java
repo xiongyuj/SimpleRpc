@@ -1,13 +1,9 @@
 package com.xyj.proxy;
 
 
-import com.xyj.handler.RpcFuture;
+import com.xyj.vo.RpcFuture;
 
-/**
- * Created by luxiaoxun on 2016/3/16.
- *
- * @author g-yu
- */
+
 public interface RpcService<T, P, FN extends SerializableFunction<T>> {
     RpcFuture call(String funcName, Object... args) throws Exception;
 

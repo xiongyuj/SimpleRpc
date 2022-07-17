@@ -1,5 +1,6 @@
-package com.xyj.handler;
+package com.xyj.vo;
 
+import com.xyj.connect.AsyncRPCCallback;
 import com.xyj.message.RpcRequest;
 import com.xyj.message.RpcResponse;
 import org.slf4j.Logger;
