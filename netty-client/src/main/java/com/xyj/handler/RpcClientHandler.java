@@ -117,6 +117,10 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
 
     //utils
 
+
+    /**
+     * 关闭连接
+     */
     public void close() {
         channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }

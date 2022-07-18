@@ -1,17 +1,22 @@
 package com.xyj.vo;
 
 import com.xyj.util.JsonUtil;
+import lombok.Data;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
-
+@Data
 public class RpcConnectionInfo implements Serializable {
+
     private static final long serialVersionUID = -1102180003395190700L;
+
     // service host
     private String host;
+
     // service port
     private int port;
+
     // service info list
     private List<RpcServiceInfo> serviceInfoList;
 
@@ -56,27 +61,5 @@ public class RpcConnectionInfo implements Serializable {
         return toJson();
     }
 
-    public String getHost() {
-        return host;
-    }
 
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public List<RpcServiceInfo> getServiceInfoList() {
-        return serviceInfoList;
-    }
-
-    public void setServiceInfoList(List<RpcServiceInfo> serviceInfoList) {
-        this.serviceInfoList = serviceInfoList;
-    }
 }

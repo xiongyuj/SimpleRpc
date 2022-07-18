@@ -4,6 +4,7 @@ import com.xyj.connect.ConnectionManager;
 import com.xyj.handler.RpcClientHandler;
 import com.xyj.vo.RpcFuture;
 import com.xyj.message.RpcRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.xyj.util.ServiceUtil;
@@ -12,9 +13,11 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
+@Slf4j
 public class ObjectProxy<T, P> implements InvocationHandler, RpcService<T, P, SerializableFunction<T>> {
-    private static final Logger logger = LoggerFactory.getLogger(ObjectProxy.class);
+
     private Class<T> clazz;
+
     private String version;
 
     public ObjectProxy(Class<T> clazz, String version) {
@@ -38,7 +41,7 @@ public class ObjectProxy<T, P> implements InvocationHandler, RpcService<T, P, Se
                 throw new IllegalStateException(String.valueOf(method));
             }
         }
-
+        //组装request
         RpcRequest request = new RpcRequest();
         request.setRequestId(UUID.randomUUID().toString());
         request.setClassName(method.getDeclaringClass().getName());
@@ -46,19 +49,21 @@ public class ObjectProxy<T, P> implements InvocationHandler, RpcService<T, P, Se
         request.setParameterTypes(method.getParameterTypes());
         request.setParameters(args);
         request.setVersion(version);
+
         // Debug
-        if (logger.isDebugEnabled()) {
-            logger.debug(method.getDeclaringClass().getName());
-            logger.debug(method.getName());
+        if (log.isDebugEnabled()) {
+            log.debug(method.getDeclaringClass().getName());
+            log.debug(method.getName());
             for (int i = 0; i < method.getParameterTypes().length; ++i) {
-                logger.debug(method.getParameterTypes()[i].getName());
+                log.debug(method.getParameterTypes()[i].getName());
             }
             for (int i = 0; i < args.length; ++i) {
-                logger.debug(args[i].toString());
+                log.debug(args[i].toString());
             }
         }
 
         String serviceKey = ServiceUtil.makeServiceKey(method.getDeclaringClass().getName(), version);
+        //根据服务名获取handler，并发送请求
         RpcClientHandler handler = ConnectionManager.getInstance().chooseHandler(serviceKey);
         RpcFuture rpcFuture = handler.sendRequest(request);
         return rpcFuture.get();
@@ -90,24 +95,10 @@ public class ObjectProxy<T, P> implements InvocationHandler, RpcService<T, P, Se
         request.setParameters(args);
         request.setVersion(version);
         Class[] parameterTypes = new Class[args.length];
-        // Get the right class type
         for (int i = 0; i < args.length; i++) {
             parameterTypes[i] = getClassType(args[i]);
         }
         request.setParameterTypes(parameterTypes);
-
-        // Debug
-        if (logger.isDebugEnabled()) {
-            logger.debug(className);
-            logger.debug(methodName);
-            for (int i = 0; i < parameterTypes.length; ++i) {
-                logger.debug(parameterTypes[i].getName());
-            }
-            for (int i = 0; i < args.length; ++i) {
-                logger.debug(args[i].toString());
-            }
-        }
-
         return request;
     }
 

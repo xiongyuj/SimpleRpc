@@ -3,31 +3,17 @@ package com.xyj.vo;
 
 
 import com.xyj.util.JsonUtil;
+import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Objects;
 
+@Data
 public class RpcServiceInfo implements Serializable {
     // interface name
     private String serviceName;
     // service version
     private String version;
-
-    public String getServiceName() {
-        return serviceName;
-    }
-
-    public void setServiceName(String serviceName) {
-        this.serviceName = serviceName;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public void setVersion(String version) {
-        this.version = version;
-    }
 
     @Override
     public boolean equals(Object o) {

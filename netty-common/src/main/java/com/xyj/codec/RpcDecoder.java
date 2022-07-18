@@ -28,7 +28,7 @@ public class RpcDecoder extends ByteToMessageDecoder {
             return;
         }
         in.markReaderIndex();
-        int dataLength = in.readInt();
+        int dataLength = in.readInt();//头四个字节为消息长度
         if (in.readableBytes() < dataLength) {
             in.resetReaderIndex();
             return;

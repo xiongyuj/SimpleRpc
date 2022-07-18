@@ -3,6 +3,7 @@ package com.xyj;
 import com.xyj.annotation.RpcAutowired;
 import com.xyj.connect.ConnectionManager;
 import com.xyj.discovery.ServiceDiscovery;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -24,10 +25,11 @@ import java.util.concurrent.TimeUnit;
 /**
  * create proxy
  */
+@Slf4j
 public class RpcClient implements ApplicationContextAware, DisposableBean {
-    private static final Logger logger = LoggerFactory.getLogger(RpcClient.class);
 
     private ServiceDiscovery serviceDiscovery;
+
     private static ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(16, 16,
             600L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1000));
 
@@ -88,7 +90,7 @@ public class RpcClient implements ApplicationContextAware, DisposableBean {
                     }
                 }
             } catch (IllegalAccessException e) {
-                logger.error(e.toString());
+                log.error(e.toString());
             }
         }
     }

@@ -25,7 +25,7 @@ public class RpcEncoder extends MessageToByteEncoder {
         if (genericClass.isInstance(in)) {
             try {
                 byte[] data = serializer.serialize(in);
-                out.writeInt(data.length);
+                out.writeInt(data.length);//头四个字节写入长度
                 out.writeBytes(data);
             } catch (Exception ex) {
                 logger.error("Encode error: " + ex.toString());

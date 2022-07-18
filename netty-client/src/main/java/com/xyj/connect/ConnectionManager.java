@@ -38,7 +38,7 @@ public class ConnectionManager {
 
     private Map<RpcConnectionInfo, RpcClientHandler> connectedServerNodes = new ConcurrentHashMap<>();
 
-    private CopyOnWriteArraySet<RpcConnectionInfo> RpcConnectionInfoSet = new CopyOnWriteArraySet<>();
+    private CopyOnWriteArraySet<RpcConnectionInfo> rpcConnectionInfoSet = new CopyOnWriteArraySet<>();
 
     private ReentrantLock lock = new ReentrantLock();
 
@@ -63,39 +63,32 @@ public class ConnectionManager {
 
 
     /**
-     * 更新缓存节点
+     * 更新本地缓存节点，初次连接或重连时调用
      * @param serviceList
      */
     public void updateConnectedServer(List<RpcConnectionInfo> serviceList) {
-        // Now using 2 collections to manage the service info and TCP connections because making the connection is async
-        // Once service info is updated on ZK, will trigger this function
-        // Actually client should only care about the service it is using
         if (serviceList != null && serviceList.size() > 0) {
-            // Update local server nodes cache
             HashSet<RpcConnectionInfo> serviceSet = new HashSet<>(serviceList.size());
-            for (int i = 0; i < serviceList.size(); ++i) {
-                RpcConnectionInfo RpcConnectionInfo = serviceList.get(i);
-                serviceSet.add(RpcConnectionInfo);
-            }
+            serviceSet.addAll(serviceList);
 
-            // Add new server info
-            for (final RpcConnectionInfo RpcConnectionInfo : serviceSet) {
-                if (!RpcConnectionInfoSet.contains(RpcConnectionInfo)) {
-                    connectServerNode(RpcConnectionInfo);
+            //连接新增节点
+            for (final RpcConnectionInfo rpcConnectionInfo : serviceSet) {
+                if (!rpcConnectionInfoSet.contains(rpcConnectionInfo)) {
+                    connectServerNode(rpcConnectionInfo);
                 }
             }
 
-            // Close and remove invalid server nodes
-            for (RpcConnectionInfo RpcConnectionInfo : RpcConnectionInfoSet) {
-                if (!serviceSet.contains(RpcConnectionInfo)) {
-                    log.info("Remove invalid service: " + RpcConnectionInfo.toJson());
-                    removeAndCloseHandler(RpcConnectionInfo);
+            //移除并关闭连接断开的节点
+            for (RpcConnectionInfo rpcConnectionInfo : rpcConnectionInfoSet) {
+                if (!serviceSet.contains(rpcConnectionInfo)) {
+                    log.info("Remove invalid service: " + rpcConnectionInfo.toJson());
+                    removeAndCloseHandler(rpcConnectionInfo);
                 }
             }
         } else {
-            // No available service
+            // 无可用服务，移除本地缓存
             log.error("No available service!");
-            for (RpcConnectionInfo RpcConnectionInfo : RpcConnectionInfoSet) {
+            for (RpcConnectionInfo RpcConnectionInfo : rpcConnectionInfoSet) {
                 removeAndCloseHandler(RpcConnectionInfo);
             }
         }
@@ -110,10 +103,9 @@ public class ConnectionManager {
         if (RpcConnectionInfo == null) {
             return;
         }
-        if (type == PathChildrenCacheEvent.Type.CHILD_ADDED && !RpcConnectionInfoSet.contains(RpcConnectionInfo)) {
+        if (type == PathChildrenCacheEvent.Type.CHILD_ADDED && !rpcConnectionInfoSet.contains(RpcConnectionInfo)) {
             connectServerNode(RpcConnectionInfo);
         } else if (type == PathChildrenCacheEvent.Type.CHILD_UPDATED) {
-            //TODO We may don't need to reconnect remote server if the server'IP and server'port are not changed
             removeAndCloseHandler(RpcConnectionInfo);
             connectServerNode(RpcConnectionInfo);
         } else if (type == PathChildrenCacheEvent.Type.CHILD_REMOVED) {
@@ -125,20 +117,20 @@ public class ConnectionManager {
 
     /**
      * 建立连接
-     * @param RpcConnectionInfo
+     * @param rpcConnectionInfo
      */
 
-    private void connectServerNode(RpcConnectionInfo RpcConnectionInfo) {
-        if (RpcConnectionInfo.getServiceInfoList() == null || RpcConnectionInfo.getServiceInfoList().isEmpty()) {
-            log.info("No service on node, host: {}, port: {}", RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
+    private void connectServerNode(RpcConnectionInfo rpcConnectionInfo) {
+        if (rpcConnectionInfo.getServiceInfoList() == null || rpcConnectionInfo.getServiceInfoList().isEmpty()) {
+            log.info("No service on node, host: {}, port: {}", rpcConnectionInfo.getHost(), rpcConnectionInfo.getPort());
             return;
         }
-        RpcConnectionInfoSet.add(RpcConnectionInfo);
-        log.info("New service node, host: {}, port: {}", RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
-        for (RpcServiceInfo serviceProtocol : RpcConnectionInfo.getServiceInfoList()) {
-            log.info("New service info, name: {}, version: {}", serviceProtocol.getServiceName(), serviceProtocol.getVersion());
+        rpcConnectionInfoSet.add(rpcConnectionInfo);//添加到本地缓存
+        log.info("New service node, host: {}, port: {}", rpcConnectionInfo.getHost(), rpcConnectionInfo.getPort());
+        for (RpcServiceInfo rpcServiceInfo : rpcConnectionInfo.getServiceInfoList()) {
+            log.info("New service info, name: {}, version: {}", rpcServiceInfo.getServiceName(), rpcServiceInfo.getVersion());
         }
-        final InetSocketAddress remotePeer = new InetSocketAddress(RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
+        final InetSocketAddress remotePeer = new InetSocketAddress(rpcConnectionInfo.getHost(), rpcConnectionInfo.getPort());
         //将连接任务提交给线程池
         threadPoolExecutor.submit(new Runnable() {
             @Override
@@ -155,8 +147,9 @@ public class ConnectionManager {
                         if (channelFuture.isSuccess()) {
                             log.info("Successfully connect to remote server, remote peer = " + remotePeer);
                             RpcClientHandler handler = channelFuture.channel().pipeline().get(RpcClientHandler.class);
-                            connectedServerNodes.put(RpcConnectionInfo, handler);
-                            handler.setRpcConnectionInfo(RpcConnectionInfo);
+                            connectedServerNodes.put(rpcConnectionInfo, handler);
+                            handler.setRpcConnectionInfo(rpcConnectionInfo);
+                            //连接成功后，connection分配handler
                             signalAvailableHandler();
                         } else {
                             log.error("Can not connect to remote server, remote peer = " + remotePeer);
@@ -204,6 +197,7 @@ public class ConnectionManager {
      */
     public RpcClientHandler chooseHandler(String serviceKey) throws Exception {
         int size = connectedServerNodes.values().size();
+        //本地节点缓存为空时需要等待handler
         while (isRunning && size <= 0) {
             try {
                 waitingForHandler();
@@ -223,36 +217,35 @@ public class ConnectionManager {
 
     /**
      * 根据RpcConnectionInfo移除并关闭该节点和对应的RpcClientHandler
-     * @param RpcConnectionInfo
+     * @param rpcConnectionInfo
      */
 
-    private void removeAndCloseHandler(RpcConnectionInfo RpcConnectionInfo) {
-        RpcClientHandler handler = connectedServerNodes.get(RpcConnectionInfo);
+    private void removeAndCloseHandler(RpcConnectionInfo rpcConnectionInfo) {
+        RpcClientHandler handler = connectedServerNodes.get(rpcConnectionInfo);
         if (handler != null) {
             handler.close();
         }
-        connectedServerNodes.remove(RpcConnectionInfo);
-        RpcConnectionInfoSet.remove(RpcConnectionInfo);
+        connectedServerNodes.remove(rpcConnectionInfo);
+        rpcConnectionInfoSet.remove(rpcConnectionInfo);
     }
 
     /**
      * 根据RpcConnectionInfo移除该节点和对应的RpcClientHandler
-     * @param RpcConnectionInfo
+     * @param rpcConnectionInfo
      */
 
-    public void removeHandler(RpcConnectionInfo RpcConnectionInfo) {
-        RpcConnectionInfoSet.remove(RpcConnectionInfo);
-        connectedServerNodes.remove(RpcConnectionInfo);
-        log.info("Remove one connection, host: {}, port: {}", RpcConnectionInfo.getHost(), RpcConnectionInfo.getPort());
+    public void removeHandler(RpcConnectionInfo rpcConnectionInfo) {
+        rpcConnectionInfoSet.remove(rpcConnectionInfo);
+        connectedServerNodes.remove(rpcConnectionInfo);
+        log.info("Remove one connection, host: {}, port: {}", rpcConnectionInfo.getHost(), rpcConnectionInfo.getPort());
     }
 
     /**
      * 关闭所有连接
      */
-
     public void stop() {
         isRunning = false;
-        for (RpcConnectionInfo RpcConnectionInfo : RpcConnectionInfoSet) {
+        for (RpcConnectionInfo RpcConnectionInfo : rpcConnectionInfoSet) {
             removeAndCloseHandler(RpcConnectionInfo);
         }
         signalAvailableHandler();

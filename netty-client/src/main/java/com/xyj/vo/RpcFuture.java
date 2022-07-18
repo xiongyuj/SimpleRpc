@@ -1,8 +1,8 @@
 package com.xyj.vo;
 
-import com.xyj.connect.AsyncRPCCallback;
 import com.xyj.message.RpcRequest;
 import com.xyj.message.RpcResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,15 +14,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.ReentrantLock;
 
+@Slf4j
 public class RpcFuture implements Future<Object> {
-    private static final Logger logger = LoggerFactory.getLogger(RpcFuture.class);
 
     private Sync sync;
+
     private RpcRequest request;
+
     private RpcResponse response;
+
     private long startTime;
+
     private long responseTimeThreshold = 5000;
+
     private List<AsyncRPCCallback> pendingCallbacks = new ArrayList<>();
+
     private ReentrantLock lock = new ReentrantLock();
 
     public RpcFuture(RpcRequest request) {
@@ -79,7 +85,7 @@ public class RpcFuture implements Future<Object> {
         // Threshold
         long responseTime = System.currentTimeMillis() - startTime;
         if (responseTime > this.responseTimeThreshold) {
-            logger.warn("Service response time is too slow. Request id = " + reponse.getRequestId() + ". Response Time = " + responseTime + "ms");
+            log.warn("Service response time is too slow. Request id = " + reponse.getRequestId() + ". Response Time = " + responseTime + "ms");
         }
     }
 
