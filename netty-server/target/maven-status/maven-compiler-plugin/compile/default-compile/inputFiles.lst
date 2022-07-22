@@ -1,6 +1,0 @@
-/Users/echo/project/netty-rpc/netty-server/src/main/java/com/xyj/server/NettyServer.java
-/Users/echo/project/netty-rpc/netty-server/src/main/java/com/xyj/server/Server.java
-/Users/echo/project/netty-rpc/netty-server/src/main/java/com/xyj/handler/RpcServerHandler.java
-/Users/echo/project/netty-rpc/netty-server/src/main/java/com/xyj/registry/ServiceRegistry.java
-/Users/echo/project/netty-rpc/netty-server/src/main/java/com/xyj/RpcServer.java
-/Users/echo/project/netty-rpc/netty-server/src/main/java/com/xyj/handler/RpcServerInitializer.java

@@ -3,9 +3,10 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/SimpleRpc.iml" filepath="$PROJECT_DIR$/.idea/SimpleRpc.iml" />
-      <module fileurl="file://$PROJECT_DIR$/netty-client/netty-client.iml" filepath="$PROJECT_DIR$/netty-client/netty-client.iml" />
-      <module fileurl="file://$PROJECT_DIR$/netty-common/netty-common.iml" filepath="$PROJECT_DIR$/netty-common/netty-common.iml" />
-      <module fileurl="file://$PROJECT_DIR$/netty-server/netty-server.iml" filepath="$PROJECT_DIR$/netty-server/netty-server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/netty-client/client.iml" filepath="$PROJECT_DIR$/netty-client/client.iml" />
+      <module fileurl="file://$PROJECT_DIR$/netty-common/common.iml" filepath="$PROJECT_DIR$/netty-common/common.iml" />
+      <module fileurl="file://$PROJECT_DIR$/netty-server/server.iml" filepath="$PROJECT_DIR$/netty-server/server.iml" />
+      <module fileurl="file://$PROJECT_DIR$/test/test.iml" filepath="$PROJECT_DIR$/test/test.iml" />
     </modules>
   </component>
 </project>
